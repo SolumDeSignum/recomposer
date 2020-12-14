@@ -1,0 +1,9 @@
+/vendor
+composer.lock
+.idea/
+.DS_Store
+.phpunit.result.cache
+node_modules/
+fonts/
+images/
+packages/*
