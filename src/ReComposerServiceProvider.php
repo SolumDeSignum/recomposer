@@ -21,7 +21,7 @@ class ReComposerServiceProvider extends ServiceProvider
     /**
      * Boot up the package. Load the views from the correct directory.
      */
-    public function boot()
+    public function boot(): void
     {
         $this->loadViewsFrom(
             __DIR__ . '/../resources/views',
@@ -43,7 +43,7 @@ class ReComposerServiceProvider extends ServiceProvider
     /**
      *
      */
-    public function register()
+    public function register(): void
     {
         $this->mergeConfigFrom(
             __DIR__ . '/../config/recomposer.php',

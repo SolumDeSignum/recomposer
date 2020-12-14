@@ -32,7 +32,7 @@ class ReComposerController
             [
                 'packages' => $this->recomposer->packages,
                 'laravelEnv' => $this->recomposer->laravelEnvironment(),
-                'serverEnv' => $this->recomposer->getServerEnv(),
+                'serverEnv' => $this->recomposer->serverEnvironment(),
                 'serverExtras' => $this->recomposer->getServerExtras(),
                 'laravelExtras' => $this->recomposer->getLaravelExtras(),
                 'extraStats' => $this->recomposer->getExtraStats(),

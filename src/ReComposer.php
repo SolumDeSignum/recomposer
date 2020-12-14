@@ -5,18 +5,18 @@ declare(strict_types=1);
 namespace SolumDeSignum\ReComposer;
 
 use App;
+use function base_path;
 use ByteUnits\Binary;
+use function config;
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Request;
+
 use Illuminate\Support\Str;
+use const JSON_THROW_ON_ERROR;
 use JsonException;
 
-use function array_key_exists;
-use function base_path;
-use function config;
-use function filesize;
 use function now;
 
 class ReComposer
@@ -28,9 +28,6 @@ class ReComposer
     public const PACKAGE_NAME = 'solumdesignum/recomposer';
 
     /**
-     * Initialise blank arrays for extra stats to be added
-     * by app or other package devs
-     *
      * @var array
      */
     public array $laravelExtras = [];
@@ -69,15 +66,15 @@ class ReComposer
     /**
      * Get the ReComposer system report as a PHP array
      *
-     * @return array
      * @throws FileNotFoundException
      * @throws JsonException
+     * @return array
      */
-    public function getReportArray(): array
+    final public function getReportArray(): array
     {
-        $reportArray['Server Environment'] = $this->getServerEnv();
+        $reportArray['Server Environment'] = $this->serverEnvironment();
         $reportArray['Laravel Environment'] = $this->laravelEnvironment();
-        $reportArray['Installed Packages'] = $this->getPackagesArray();
+        $reportArray['Installed Packages'] = $this->installedPackages();
 
         if (! empty($this->getExtraStats())) {
             $reportArray['Extra Stats'] = $this->getExtraStats();
@@ -91,9 +88,9 @@ class ReComposer
      *
      * @param $extraStatsArray
      */
-    public function addExtraStats(array $extraStatsArray)
+    final public function addExtraStats(array $extraStatsArray): void
     {
-        $this->extraStats = array_merge($this->extraStats, $extraStatsArray);
+        $this->extraStats = \array_merge($this->extraStats, $extraStatsArray);
     }
 
     /**
@@ -101,9 +98,9 @@ class ReComposer
      *
      * @param array $laravelStatsArray
      */
-    public function addLaravelStats(array $laravelStatsArray)
+    final public function addLaravelStats(array $laravelStatsArray): void
     {
-        $this->laravelExtras = array_merge($this->laravelExtras, $laravelStatsArray);
+        $this->laravelExtras = \array_merge($this->laravelExtras, $laravelStatsArray);
     }
 
     /**
@@ -111,9 +108,9 @@ class ReComposer
      *
      * @param $serverStatsArray
      */
-    public function addServerStats(array $serverStatsArray)
+    final public function addServerStats(array $serverStatsArray): void
     {
-        $this->serverExtras = array_merge($this->serverExtras, $serverStatsArray);
+        $this->serverExtras = \array_merge($this->serverExtras, $serverStatsArray);
     }
 
     /**
@@ -121,8 +118,7 @@ class ReComposer
      *
      * @return array
      */
-
-    public function getExtraStats(): array
+    final public function getExtraStats(): array
     {
         return $this->extraStats;
     }
@@ -132,8 +128,7 @@ class ReComposer
      *
      * @return array
      */
-
-    public function getServerExtras(): array
+    final public function getServerExtras(): array
     {
         return $this->serverExtras;
     }
@@ -143,7 +138,6 @@ class ReComposer
      *
      * @return array
      */
-
     final public function getLaravelExtras(): array
     {
         return $this->laravelExtras;
@@ -152,81 +146,13 @@ class ReComposer
     /**
      * Get the DeComposer system report as JSON
      *
-     * @return false|string
-     * @throws JsonException
      * @throws FileNotFoundException
+     * @throws JsonException
+     * @return false|string
      */
     final public function getReportJson()
     {
-        return json_encode($this->getReportArray(), JSON_THROW_ON_ERROR);
-    }
-
-    /**
-     * Get the Composer file contents as an array
-     *
-     * @return array
-     * @throws JsonException
-     */
-    final public function composerJson(): array
-    {
-        $composerJson = file_get_contents(base_path('composer.json'));
-        return json_decode($composerJson, true, 512, JSON_THROW_ON_ERROR);
-    }
-
-    /**
-     * @param string $key
-     * @param array  $responseDependencies
-     *
-     * @return mixed|string
-     */
-    final public function dependencies(string $key, array $responseDependencies)
-    {
-        return array_key_exists(
-            $key,
-            $responseDependencies
-        ) ? $responseDependencies[$key] : 'No dependencies';
-    }
-
-    /**
-     * Get Installed packages & their Dependencies
-     *
-     * @return array
-     * @throws FileNotFoundException
-     * @throws JsonException
-     */
-    public function packagesWithDependencies(): array
-    {
-        $responsePackages = [];
-
-        foreach ($this->composer['require'] as $packageName => $version) {
-            $packageComposerJson = base_path("/vendor/{$packageName}/composer.json");
-
-            if (File::isFile($packageComposerJson)) {
-                $packageComposerJson = File::get($packageComposerJson);
-
-                $responseDependencies = json_decode(
-                    $packageComposerJson,
-                    true,
-                    512,
-                    JSON_THROW_ON_ERROR
-                );
-
-                $responsePackages[] = [
-                    'name' => $packageName,
-                    'version' => $version,
-                    'dependencies' => $this->dependencies(
-                        'require',
-                        $responseDependencies
-                    ),
-                    'dev-dependencies' => $this->dependencies(
-                        'require-dev',
-                        $responseDependencies
-                    ),
-                ];
-            }
-        }
-
-        return $responsePackages;
+        return \json_encode($this->getReportArray(), JSON_THROW_ON_ERROR);
     }
 
     /**
@@ -234,20 +160,20 @@ class ReComposer
      *
      * @return array
      */
-    public function laravelEnvironment(): array
+    final public function laravelEnvironment(): array
     {
-        return array_merge(
+        return \array_merge(
             [
                 'version' => App::version(),
                 'timezone' => config('app.timezone'),
                 'debug_mode' => config('app.debug'),
-                'storage_dir_writable' => is_writable(base_path('storage')),
-                'cache_dir_writable' => is_writable(base_path('bootstrap/cache')),
+                'storage_dir_writable' => \is_writable(base_path('storage')),
+                'cache_dir_writable' => \is_writable(base_path('bootstrap/cache')),
                 'decomposer_version' => $this->packageVersion(),
                 'app_size' => Str::replaceFirst(
                     'MiB',
                     'mb',
-                    (new self)->appSize()
+                    $this->appSize()
                 ),
             ],
             $this->getLaravelExtras()
@@ -259,7 +185,7 @@ class ReComposer
      */
     final public function binaryBytes(): string
     {
-        return Binary::bytes(self::folderSize(base_path()))->format();
+        return Binary::bytes($this->folderSize(base_path()))->format();
     }
 
     /**
@@ -291,35 +217,105 @@ class ReComposer
      *
      * @return array
      */
-    public function getServerEnv(): array
+    public function serverEnvironment(): array
     {
-        return array_merge(
+        return \array_merge(
             [
                 'version' => PHP_VERSION,
                 'server_software' => $_SERVER['SERVER_SOFTWARE'],
-                'server_os' => php_uname(),
+                'server_os' => \php_uname(),
                 'database_connection_name' => config('database.default'),
                 'ssl_installed' => $this->isSecure(),
                 'cache_driver' => config('cache.default'),
                 'session_driver' => config('session.driver'),
-                'openssl' => extension_loaded('openssl'),
-                'pdo' => extension_loaded('pdo'),
-                'mbstring' => extension_loaded('mbstring'),
-                'tokenizer' => extension_loaded('tokenizer'),
-                'xml' => extension_loaded('xml'),
+                'openssl' => \extension_loaded('openssl'),
+                'pdo' => \extension_loaded('pdo'),
+                'mbstring' => \extension_loaded('mbstring'),
+                'tokenizer' => \extension_loaded('tokenizer'),
+                'xml' => \extension_loaded('xml'),
             ],
             $this->getServerExtras()
         );
     }
 
     /**
-     * Get Installed packages & their version numbers as an associative array
+     * Get the Composer file contents as an array
      *
+     * @throws JsonException
      * @return array
+     */
+    private function composerJson(): array
+    {
+        $composerJson = \file_get_contents(base_path('composer.json'));
+        return \json_decode($composerJson, true, 512, JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * @param string $key
+     * @param array  $responseDependencies
+     *
+     * @return mixed|string
+     */
+    private function dependencies(string $key, array $responseDependencies)
+    {
+        return \array_key_exists(
+            $key,
+            $responseDependencies
+        ) ?
+            $responseDependencies[$key] :
+            'No dependencies';
+    }
+
+    /**
+     * Get Installed packages & their Dependencies
+     *
      * @throws FileNotFoundException
      * @throws JsonException
+     * @return array
      */
-    private function getPackagesArray(): array
+    private function packagesWithDependencies(): array
+    {
+        $responsePackages = [];
+
+        foreach ($this->composer['require'] as $packageName => $version) {
+            $packageComposerJson = base_path("/vendor/{$packageName}/composer.json");
+
+            if (File::isFile($packageComposerJson)) {
+                $packageComposerJson = File::get($packageComposerJson);
+
+                $responseDependencies = \json_decode(
+                    $packageComposerJson,
+                    true,
+                    512,
+                    JSON_THROW_ON_ERROR
+                );
+
+                $responsePackages[] = [
+                    'name' => $packageName,
+                    'version' => $version,
+                    'dependencies' => $this->dependencies(
+                        'require',
+                        $responseDependencies
+                    ),
+                    'dev-dependencies' => $this->dependencies(
+                        'require-dev',
+                        $responseDependencies
+                    ),
+                ];
+            }
+        }
+
+        return $responsePackages;
+    }
+
+    /**
+     * Get Installed packages & their version numbers as an associative array
+     *
+     * @throws FileNotFoundException
+     * @throws JsonException
+     * @return array
+     */
+    private function installedPackages(): array
     {
         $packagesWithDependencies = [];
         foreach ($this->packagesWithDependencies() as $packageWithDependencies) {
@@ -334,7 +330,7 @@ class ReComposer
      *
      * @return string
      */
-    public function packageVersion(): string
+    private function packageVersion(): string
     {
         $version = $this->composer['require-dev'][self::PACKAGE_NAME] ??
             $this->composer['require'][self::PACKAGE_NAME] ??
@@ -372,22 +368,22 @@ class ReComposer
      * @return int
      */
 
-    private static function folderSize($dir): int
+    private function folderSize($dir): int
     {
         $size = 0;
-        foreach (glob(rtrim($dir, '/') . '/*', GLOB_NOSORT) as $each) {
-            if (! is_file($each) && Str::contains(
-                    $each,
-                    config(
+        foreach (\glob(\rtrim($dir, '/') . '/*', GLOB_NOSORT) as $each) {
+            if (! \is_file($each) && Str::contains(
+                $each,
+                config(
                         'recomposer.folders_exclude'
                     )
-                )) {
+            )) {
                 continue;
             }
 
-            $sizes[] = $size += is_file($each) ?
-                filesize($each) :
-                self::folderSize($each);
+            $sizes[] = $size += \is_file($each) ?
+                \filesize($each) :
+                $this->folderSize($each);
         }
 
         return $size;
