@@ -5,51 +5,36 @@ declare(strict_types=1);
 namespace SolumDeSignum\ReComposer;
 
 use App;
-use function base_path;
 use ByteUnits\Binary;
-use function config;
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Request;
-
 use Illuminate\Support\Str;
-use const JSON_THROW_ON_ERROR;
 use JsonException;
 
+use function array_first;
+use function base_path;
+use function config;
+use function exec;
+use function explode;
+use function implode;
 use function now;
+
+use const JSON_THROW_ON_ERROR;
 
 class ReComposer
 {
-    /**
-     * Make ReComposer name as a constant to be used
-     * in resolving its version number
-     */
-    public const PACKAGE_NAME = 'solumdesignum/recomposer';
+    public string $packageName;
 
-    /**
-     * @var array
-     */
     public array $laravelExtras = [];
 
-    /**
-     * @var array
-     */
     public array $serverExtras = [];
 
-    /**
-     * @var array
-     */
     public array $extraStats = [];
 
-    /**
-     * @var array
-     */
     public array $composer = [];
 
-    /**
-     * @var array
-     */
     public array $packages = [];
 
     /**
@@ -61,6 +46,7 @@ class ReComposer
     {
         $this->composer = $this->composerJson();
         $this->packages = $this->packagesWithDependencies();
+        $this->packageName = ReComposerServiceProvider::$namespaceSuffix . '/' . ReComposerServiceProvider::$alias;
     }
 
     /**
@@ -70,47 +56,47 @@ class ReComposer
      * @throws JsonException
      * @return array
      */
-    final public function getReportArray(): array
+    final public function report(): array
     {
-        $reportArray['Server Environment'] = $this->serverEnvironment();
-        $reportArray['Laravel Environment'] = $this->laravelEnvironment();
-        $reportArray['Installed Packages'] = $this->installedPackages();
+        $reportResponse['Server Environment'] = $this->serverEnvironment();
+        $reportResponse['Laravel Environment'] = $this->laravelEnvironment();
+        $reportResponse['Installed Packages'] = $this->installedPackages();
 
-        if (! empty($this->getExtraStats())) {
-            $reportArray['Extra Stats'] = $this->getExtraStats();
+        if (! empty($this->extraStats())) {
+            $reportResponse['Extra Stats'] = $this->extraStats();
         }
 
-        return $reportArray;
+        return $reportResponse;
     }
 
     /**
      * Add Extra stats by app or any other package dev
      *
-     * @param $extraStatsArray
+     * @param array $extraStats
      */
-    final public function addExtraStats(array $extraStatsArray): void
+    final public function addExtraStats(array $extraStats): void
     {
-        $this->extraStats = \array_merge($this->extraStats, $extraStatsArray);
+        $this->extraStats = \array_merge($this->extraStats, $extraStats);
     }
 
     /**
      * Add Laravel specific stats by app or any other package dev
      *
-     * @param array $laravelStatsArray
+     * @param array $laravelStats
      */
-    final public function addLaravelStats(array $laravelStatsArray): void
+    final public function addLaravelStats(array $laravelStats): void
     {
-        $this->laravelExtras = \array_merge($this->laravelExtras, $laravelStatsArray);
+        $this->laravelExtras = \array_merge($this->laravelExtras, $laravelStats);
     }
 
     /**
      * Add Server specific stats by app or any other package dev
      *
-     * @param $serverStatsArray
+     * @param array $serverStats
      */
-    final public function addServerStats(array $serverStatsArray): void
+    final public function addServerStats(array $serverStats): void
     {
-        $this->serverExtras = \array_merge($this->serverExtras, $serverStatsArray);
+        $this->serverExtras = \array_merge($this->serverExtras, $serverStats);
     }
 
     /**
@@ -118,7 +104,7 @@ class ReComposer
      *
      * @return array
      */
-    final public function getExtraStats(): array
+    final public function extraStats(): array
     {
         return $this->extraStats;
     }
@@ -128,7 +114,7 @@ class ReComposer
      *
      * @return array
      */
-    final public function getServerExtras(): array
+    final public function serverExtras(): array
     {
         return $this->serverExtras;
     }
@@ -138,21 +124,9 @@ class ReComposer
      *
      * @return array
      */
-    final public function getLaravelExtras(): array
+    final public function laravelExtras(): array
     {
         return $this->laravelExtras;
-    }
-
-    /**
-     * Get the DeComposer system report as JSON
-     *
-     * @throws FileNotFoundException
-     * @throws JsonException
-     * @return false|string
-     */
-    final public function getReportJson()
-    {
-        return \json_encode($this->getReportArray(), JSON_THROW_ON_ERROR);
     }
 
     /**
@@ -176,28 +150,29 @@ class ReComposer
                     $this->appSize()
                 ),
             ],
-            $this->getLaravelExtras()
+            $this->laravelExtras()
         );
     }
 
     /**
      * @return string
      */
-    final public function binaryBytes(): string
+    final public function binaryFormat(): string
     {
-        return Binary::bytes($this->folderSize(base_path()))->format();
+        $binaryFormat = config('recomposer.binaryFormat');
+        return Binary::$binaryFormat($this->directorySize())->format();
     }
 
     /**
      * @return string|null
      */
-    final public function cacheRememberBytes(): ?string
+    final public function cacheRemember(): ?string
     {
         return Cache::remember(
             'recomposer.folderSize',
             now()->addHours(config('recomposer.cache.hours', 1)),
             function () {
-                return $this->binaryBytes();
+                return $this->binaryFormat();
             }
         );
     }
@@ -208,8 +183,8 @@ class ReComposer
     final public function appSize()
     {
         return config('recomposer.cache.feature') ?
-            $this->cacheRememberBytes() :
-            $this->binaryBytes();
+            $this->cacheRemember() :
+            $this->binaryFormat();
     }
 
     /**
@@ -234,20 +209,20 @@ class ReComposer
                 'tokenizer' => \extension_loaded('tokenizer'),
                 'xml' => \extension_loaded('xml'),
             ],
-            $this->getServerExtras()
+            $this->serverExtras()
         );
     }
 
     /**
-     * Get the Composer file contents as an array
+     *  Get the Composer file contents as an array
      *
-     * @throws JsonException
      * @return array
+     * @throws JsonException
      */
     private function composerJson(): array
     {
         $composerJson = \file_get_contents(base_path('composer.json'));
-        return \json_decode($composerJson, true, 512, JSON_THROW_ON_ERROR);
+        return \json_decode((string) $composerJson, true, 512, JSON_THROW_ON_ERROR);
     }
 
     /**
@@ -276,7 +251,6 @@ class ReComposer
     private function packagesWithDependencies(): array
     {
         $responsePackages = [];
-
         foreach ($this->composer['require'] as $packageName => $version) {
             $packageComposerJson = base_path("/vendor/{$packageName}/composer.json");
 
@@ -332,17 +306,17 @@ class ReComposer
      */
     private function packageVersion(): string
     {
-        $version = $this->composer['require-dev'][self::PACKAGE_NAME] ??
-            $this->composer['require'][self::PACKAGE_NAME] ??
+        $version = $this->composer['require-dev'][$this->packageName] ??
+            $this->composer['require'][$this->packageName] ??
             'unknown';
 
         foreach ($this->packages as $package) {
-            if (isset($package['dependencies'][self::PACKAGE_NAME])) {
-                $version = $package['dependencies'][self::PACKAGE_NAME];
+            if (isset($package['dependencies'][$this->packageName])) {
+                $version = $package['dependencies'][$this->packageName];
             }
 
-            if (isset($package['dev-dependencies'][self::PACKAGE_NAME])) {
-                $version = $package['dev-dependencies'][self::PACKAGE_NAME];
+            if (isset($package['dev-dependencies'][$this->packageName])) {
+                $version = $package['dev-dependencies'][$this->packageName];
             }
         }
 
@@ -354,38 +328,21 @@ class ReComposer
      *
      * @return boolean
      */
-
     private function isSecure(): bool
     {
         return Request::isSecure();
     }
 
     /**
-     * Get the laravel app's size
-     *
-     * @param $dir
-     *
      * @return int
      */
-
-    private function folderSize($dir): int
+    private function directorySize(): int
     {
-        $size = 0;
-        foreach (\glob(\rtrim($dir, '/') . '/*', GLOB_NOSORT) as $each) {
-            if (! \is_file($each) && Str::contains(
-                $each,
-                config(
-                        'recomposer.folders_exclude'
-                    )
-            )) {
-                continue;
-            }
+        $basePath = config('recomposer.basePath');
+        $excludeDirectories = implode(' ', config('recomposer.exclude_folders'));
+        $execResponse = exec("du $basePath" . ' ' . $excludeDirectories);
+        $directorySize = explode("\t", $execResponse);
 
-            $sizes[] = $size += \is_file($each) ?
-                \filesize($each) :
-                $this->folderSize($each);
-        }
-
-        return $size;
+        return (int) array_first($directorySize);
     }
 }

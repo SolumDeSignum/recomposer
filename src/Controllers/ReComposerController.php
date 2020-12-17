@@ -9,9 +9,6 @@ use SolumDeSignum\ReComposer\ReComposer;
 
 class ReComposerController
 {
-    /**
-     * @var ReComposer
-     */
     private ReComposer $recomposer;
 
     /**
@@ -33,9 +30,9 @@ class ReComposerController
                 'packages' => $this->recomposer->packages,
                 'laravelEnv' => $this->recomposer->laravelEnvironment(),
                 'serverEnv' => $this->recomposer->serverEnvironment(),
-                'serverExtras' => $this->recomposer->getServerExtras(),
-                'laravelExtras' => $this->recomposer->getLaravelExtras(),
-                'extraStats' => $this->recomposer->getExtraStats(),
+                'serverExtras' => $this->recomposer->serverExtras(),
+                'laravelExtras' => $this->recomposer->laravelExtras(),
+                'extraStats' => $this->recomposer->extraStats(),
             ]
         );
     }
