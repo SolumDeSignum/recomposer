@@ -5,28 +5,26 @@ declare(strict_types=1);
 namespace SolumDeSignum\ReComposer;
 
 use App;
-use ByteUnits\Binary;
-use Illuminate\Contracts\Filesystem\FileNotFoundException;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Request;
-use Illuminate\Support\Str;
-use JsonException;
-
 use function array_first;
 use function array_merge;
 use function base_path;
+use ByteUnits\Binary;
 use function collect;
 use function config;
 use function exec;
 use function explode;
 use function get_loaded_extensions;
+use Illuminate\Contracts\Filesystem\FileNotFoundException;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Request;
+use Illuminate\Support\Str;
 use function implode;
 use function in_array;
+use const JSON_THROW_ON_ERROR;
+use JsonException;
 use function now;
 use function strtolower;
-
-use const JSON_THROW_ON_ERROR;
 
 class ReComposer
 {
@@ -44,6 +42,7 @@ class ReComposer
 
     /**
      * ReComposer constructor.
+     *
      * @throws FileNotFoundException
      * @throws JsonException
      */
@@ -51,14 +50,15 @@ class ReComposer
     {
         $this->composer = $this->composerJson();
         $this->packages = $this->packagesWithDependencies();
-        $this->packageName = ReComposerServiceProvider::$namespaceSuffix . '/' . ReComposerServiceProvider::$alias;
+        $this->packageName = ReComposerServiceProvider::$namespaceSuffix.'/'.ReComposerServiceProvider::$alias;
     }
 
     /**
-     * Get the ReComposer system report as a PHP array
+     * Get the ReComposer system report as a PHP array.
      *
      * @throws FileNotFoundException
      * @throws JsonException
+     *
      * @return array
      */
     final public function report(): array
@@ -67,7 +67,7 @@ class ReComposer
         $reportResponse['Laravel Environment'] = $this->laravelEnvironment();
         $reportResponse['Installed Packages'] = $this->installedPackages();
 
-        if (! empty($this->extraStats())) {
+        if (!empty($this->extraStats())) {
             $reportResponse['Extra Stats'] = $this->extraStats();
         }
 
@@ -75,7 +75,7 @@ class ReComposer
     }
 
     /**
-     * Add Extra stats by app or any other package dev
+     * Add Extra stats by app or any other package dev.
      *
      * @param array $extraStats
      */
@@ -85,7 +85,7 @@ class ReComposer
     }
 
     /**
-     * Add Laravel specific stats by app or any other package dev
+     * Add Laravel specific stats by app or any other package dev.
      *
      * @param array $laravelStats
      */
@@ -95,7 +95,7 @@ class ReComposer
     }
 
     /**
-     * Add Server specific stats by app or any other package dev
+     * Add Server specific stats by app or any other package dev.
      *
      * @param array $serverStats
      */
@@ -105,7 +105,7 @@ class ReComposer
     }
 
     /**
-     * Get the extra stats added by the app or any other package dev
+     * Get the extra stats added by the app or any other package dev.
      *
      * @return array
      */
@@ -115,7 +115,7 @@ class ReComposer
     }
 
     /**
-     * Get additional server info added by the app or any other package dev
+     * Get additional server info added by the app or any other package dev.
      *
      * @return array
      */
@@ -125,7 +125,7 @@ class ReComposer
     }
 
     /**
-     * Get additional laravel info added by the app or any other package dev
+     * Get additional laravel info added by the app or any other package dev.
      *
      * @return array
      */
@@ -135,7 +135,7 @@ class ReComposer
     }
 
     /**
-     * Get Laravel environment details
+     * Get Laravel environment details.
      *
      * @return array
      */
@@ -143,16 +143,16 @@ class ReComposer
     {
         return \array_merge(
             [
-                'version' => App::version(),
-                'timezone' => config('app.timezone'),
-                'debug_mode' => config('app.debug'),
+                'version'              => App::version(),
+                'timezone'             => config('app.timezone'),
+                'debug_mode'           => config('app.debug'),
                 'storage_dir_writable' => \is_writable(base_path('storage')),
-                'cache_dir_writable' => \is_writable(base_path('bootstrap/cache')),
-                'decomposer_version' => $this->packageVersion(),
-                'app_size' => Str::replaceFirst(
+                'cache_dir_writable'   => \is_writable(base_path('bootstrap/cache')),
+                'decomposer_version'   => $this->packageVersion(),
+                'app_size'             => Str::replaceFirst(
                     config('recomposer.binary.search', 'MiB'),
                     config('recomposer.binary.replace', 'mb'),
-                    (string)$this->appSize()
+                    (string) $this->appSize()
                 ),
             ],
             $this->laravelExtras()
@@ -165,6 +165,7 @@ class ReComposer
     final public function binaryFormat(): string
     {
         $binaryFormat = config('recomposer.binary.format');
+
         return Binary::$binaryFormat($this->directorySize())->format();
     }
 
@@ -193,7 +194,7 @@ class ReComposer
     }
 
     /**
-     * Get PHP/Server environment details
+     * Get PHP/Server environment details.
      *
      * @return array
      */
@@ -201,32 +202,34 @@ class ReComposer
     {
         return \array_merge(
             [
-                'version' => PHP_VERSION,
-                'server_software' => $_SERVER['SERVER_SOFTWARE'],
-                'server_os' => \php_uname(),
+                'version'                  => PHP_VERSION,
+                'server_software'          => $_SERVER['SERVER_SOFTWARE'],
+                'server_os'                => \php_uname(),
                 'database_connection_name' => config('database.default'),
-                'ssl_installed' => $this->isSecure(),
-                'cache_driver' => config('cache.default'),
-                'session_driver' => config('session.driver'),
-                'openssl' => \extension_loaded('openssl'),
-                'pdo' => \extension_loaded('pdo'),
-                'mbstring' => \extension_loaded('mbstring'),
-                'tokenizer' => \extension_loaded('tokenizer'),
-                'xml' => \extension_loaded('xml'),
+                'ssl_installed'            => $this->isSecure(),
+                'cache_driver'             => config('cache.default'),
+                'session_driver'           => config('session.driver'),
+                'openssl'                  => \extension_loaded('openssl'),
+                'pdo'                      => \extension_loaded('pdo'),
+                'mbstring'                 => \extension_loaded('mbstring'),
+                'tokenizer'                => \extension_loaded('tokenizer'),
+                'xml'                      => \extension_loaded('xml'),
             ],
             $this->serverExtras()
         );
     }
 
     /**
-     *  Get the Composer file contents as an array
+     *  Get the Composer file contents as an array.
+     *
+     * @throws JsonException
      *
      * @return array
-     * @throws JsonException
      */
     private function composerJson(): array
     {
         $composerJson = \file_get_contents(base_path('composer.json'));
+
         return \json_decode((string) $composerJson, true, 512, JSON_THROW_ON_ERROR);
     }
 
@@ -254,7 +257,7 @@ class ReComposer
         $extensions = collect(get_loaded_extensions())
             ->map(
                 function (string $ext) {
-                    return 'ext-' . strtolower($ext);
+                    return 'ext-'.strtolower($ext);
                 }
             );
 
@@ -268,19 +271,20 @@ class ReComposer
     }
 
     /**
-     * Get Installed packages & their Dependencies
+     * Get Installed packages & their Dependencies.
      *
      * @param string $requireType
      *
-     * @return array
      * @throws FileNotFoundException
      * @throws JsonException
+     *
+     * @return array
      */
     private function collectPackages(string $requireType): array
     {
         $responsePackages = [];
         foreach ($this->composer[$requireType] as $packageName => $version) {
-            if (! in_array($packageName, $this->excludeBlacklistPackages(), true)) {
+            if (!in_array($packageName, $this->excludeBlacklistPackages(), true)) {
                 $packageComposerJson = base_path(
                     "/vendor/{$packageName}/composer.json"
                 );
@@ -294,8 +298,8 @@ class ReComposer
                 );
 
                 $responsePackages[] = [
-                    'name' => $packageName,
-                    'version' => $version,
+                    'name'         => $packageName,
+                    'version'      => $version,
                     'dependencies' => $this->dependencies(
                         'require',
                         $responseDependencies
@@ -312,9 +316,10 @@ class ReComposer
     }
 
     /**
-     * @return array
      * @throws FileNotFoundException
      * @throws JsonException
+     *
+     * @return array
      */
     private function packagesWithDependencies(): array
     {
@@ -325,11 +330,12 @@ class ReComposer
     }
 
     /**
-     * Get Installed packages & their version numbers as an associative array
+     * Get Installed packages & their version numbers as an associative array.
      *
-     * @return array
      * @throws JsonException
      * @throws FileNotFoundException
+     *
+     * @return array
      */
     private function installedPackages(): array
     {
@@ -342,7 +348,7 @@ class ReComposer
     }
 
     /**
-     * Get current installed ReComposer version
+     * Get current installed ReComposer version.
      *
      * @return string
      */
@@ -366,9 +372,9 @@ class ReComposer
     }
 
     /**
-     * Check if SSL is installed or not
+     * Check if SSL is installed or not.
      *
-     * @return boolean
+     * @return bool
      */
     private function isSecure(): bool
     {
@@ -385,7 +391,7 @@ class ReComposer
             ' ',
             config('recomposer.exclude.folder.blacklist')
         );
-        $execResponse = exec("du $basePath" . ' ' . $excludeDirectories);
+        $execResponse = exec("du $basePath".' '.$excludeDirectories);
         $directorySize = explode("\t", $execResponse);
 
         return (int) array_first($directorySize);
