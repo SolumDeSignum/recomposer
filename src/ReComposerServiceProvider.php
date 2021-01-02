@@ -40,9 +40,6 @@ class ReComposerServiceProvider extends ServiceProvider
         }
     }
 
-    /**
-     *
-     */
     public function register(): void
     {
         $this->mergeConfigFrom(

@@ -7,6 +7,8 @@ namespace SolumDeSignum\ReComposer\Controllers;
 use Illuminate\View\View;
 use SolumDeSignum\ReComposer\ReComposer;
 
+use function config;
+
 class ReComposerController
 {
     private ReComposer $recomposer;
@@ -24,6 +26,7 @@ class ReComposerController
      */
     public function index(): View
     {
+
         return view(
             config('recomposer.view', 'solumdesignum/recomposer::index'),
             [
@@ -33,6 +36,8 @@ class ReComposerController
                 'serverExtras' => $this->recomposer->serverExtras(),
                 'laravelExtras' => $this->recomposer->laravelExtras(),
                 'extraStats' => $this->recomposer->extraStats(),
+                'iconCheck' => config('recomposer.icon.check'),
+                'iconUncheck' => config('recomposer.icon.uncheck'),
             ]
         );
     }

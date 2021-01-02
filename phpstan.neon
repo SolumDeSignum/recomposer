@@ -1,0 +1,13 @@
+includes:
+    - vendor/nunomaduro/larastan/extension.neon
+    - vendor/phpstan/phpstan-deprecation-rules/rules.neon
+parameters:
+    level: 8
+    paths:
+        - app
+        - packages
+
+    ignoreErrors:
+      - '#Unsafe usage of new static#'
+
+    checkMissingIterableValueType: false

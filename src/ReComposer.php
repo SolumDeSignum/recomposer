@@ -14,12 +14,17 @@ use Illuminate\Support\Str;
 use JsonException;
 
 use function array_first;
+use function array_merge;
 use function base_path;
+use function collect;
 use function config;
 use function exec;
 use function explode;
+use function get_loaded_extensions;
 use function implode;
+use function in_array;
 use function now;
+use function strtolower;
 
 use const JSON_THROW_ON_ERROR;
 
@@ -145,9 +150,9 @@ class ReComposer
                 'cache_dir_writable' => \is_writable(base_path('bootstrap/cache')),
                 'decomposer_version' => $this->packageVersion(),
                 'app_size' => Str::replaceFirst(
-                    'MiB',
-                    'mb',
-                    $this->appSize()
+                    config('recomposer.binary.search', 'MiB'),
+                    config('recomposer.binary.replace', 'mb'),
+                    (string)$this->appSize()
                 ),
             ],
             $this->laravelExtras()
@@ -159,7 +164,7 @@ class ReComposer
      */
     final public function binaryFormat(): string
     {
-        $binaryFormat = config('recomposer.binaryFormat');
+        $binaryFormat = config('recomposer.binary.format');
         return Binary::$binaryFormat($this->directorySize())->format();
     }
 
@@ -178,9 +183,9 @@ class ReComposer
     }
 
     /**
-     * @return mixed
+     * @return string|null
      */
-    final public function appSize()
+    final public function appSize(): ?string
     {
         return config('recomposer.cache.feature') ?
             $this->cacheRemember() :
@@ -229,7 +234,7 @@ class ReComposer
      * @param string $key
      * @param array  $responseDependencies
      *
-     * @return mixed|string
+     * @return mixed
      */
     private function dependencies(string $key, array $responseDependencies)
     {
@@ -242,21 +247,45 @@ class ReComposer
     }
 
     /**
-     * Get Installed packages & their Dependencies
-     *
-     * @throws FileNotFoundException
-     * @throws JsonException
      * @return array
      */
-    private function packagesWithDependencies(): array
+    private function excludeBlacklistPackages(): array
+    {
+        $extensions = collect(get_loaded_extensions())
+            ->map(
+                function (string $ext) {
+                    return 'ext-' . strtolower($ext);
+                }
+            );
+
+        if (config('recomposer.exclude.packages.enabled')) {
+            foreach (config('recomposer.exclude.packages.blacklist') as $package) {
+                $extensions->add($package);
+            }
+        }
+
+        return $extensions->toArray();
+    }
+
+    /**
+     * Get Installed packages & their Dependencies
+     *
+     * @param string $requireType
+     *
+     * @return array
+     * @throws FileNotFoundException
+     * @throws JsonException
+     */
+    private function collectPackages(string $requireType): array
     {
         $responsePackages = [];
-        foreach ($this->composer['require'] as $packageName => $version) {
-            $packageComposerJson = base_path("/vendor/{$packageName}/composer.json");
+        foreach ($this->composer[$requireType] as $packageName => $version) {
+            if (! in_array($packageName, $this->excludeBlacklistPackages(), true)) {
+                $packageComposerJson = base_path(
+                    "/vendor/{$packageName}/composer.json"
+                );
 
-            if (File::isFile($packageComposerJson)) {
                 $packageComposerJson = File::get($packageComposerJson);
-
                 $responseDependencies = \json_decode(
                     $packageComposerJson,
                     true,
@@ -283,11 +312,24 @@ class ReComposer
     }
 
     /**
-     * Get Installed packages & their version numbers as an associative array
-     *
+     * @return array
      * @throws FileNotFoundException
      * @throws JsonException
+     */
+    private function packagesWithDependencies(): array
+    {
+        $responseRequirePackages = $this->collectPackages('require');
+        $responseRequireDevPackages = $this->collectPackages('require-dev');
+
+        return array_merge($responseRequirePackages, $responseRequireDevPackages);
+    }
+
+    /**
+     * Get Installed packages & their version numbers as an associative array
+     *
      * @return array
+     * @throws JsonException
+     * @throws FileNotFoundException
      */
     private function installedPackages(): array
     {
@@ -339,7 +381,10 @@ class ReComposer
     private function directorySize(): int
     {
         $basePath = config('recomposer.basePath');
-        $excludeDirectories = implode(' ', config('recomposer.exclude_folders'));
+        $excludeDirectories = implode(
+            ' ',
+            config('recomposer.exclude.folder.blacklist')
+        );
         $execResponse = exec("du $basePath" . ' ' . $excludeDirectories);
         $directorySize = explode("\t", $execResponse);
 
