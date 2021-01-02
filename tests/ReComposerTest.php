@@ -18,7 +18,7 @@ class ReComposerTest extends TestCase
     /**
      * Filter out laravel package
      * Verify is laravel installed
-     * Verify dependencies, dev-dependencies are array
+     * Verify dependencies, dev-dependencies are array.
      *
      * @test
      */
