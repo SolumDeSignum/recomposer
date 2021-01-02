@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
+namespace Tests;
+
 use SolumDeSignum\ReComposer\ReComposer;
-use Tests\TestCase;
 
 class ReComposerTest extends TestCase
 {
