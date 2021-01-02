@@ -63,6 +63,7 @@ class ReComposer
      */
     final public function report(): array
     {
+        $reportResponse = [];
         $reportResponse['Server Environment'] = $this->serverEnvironment();
         $reportResponse['Laravel Environment'] = $this->laravelEnvironment();
         $reportResponse['Installed Packages'] = $this->installedPackages();
@@ -394,6 +395,7 @@ class ReComposer
         $execResponse = exec("du $basePath".' '.$excludeDirectories);
         $directorySize = explode("\t", $execResponse);
 
+        /** @scrutinizer ignore-call */
         return (int) array_first($directorySize);
     }
 }
