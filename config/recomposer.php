@@ -6,18 +6,18 @@ $excludePrefix = '--exclude=';
 
 return [
     'basePath' => base_path(),
-    'binary' => [
-        'format' => 'kilobytes',
-        'search' => 'MiB',
+    'binary'   => [
+        'format'  => 'kilobytes',
+        'search'  => 'MiB',
         'replace' => 'mb',
     ],
-    'view' => 'solumdesignum/recomposer::index',
+    'view'  => 'solumdesignum/recomposer::index',
     'cache' => [
         'feature' => false,
-        'hours' => 1,
+        'hours'   => 1,
     ],
     'icon' => [
-        'check' => '<i class="fas fa-check"></i>',
+        'check'   => '<i class="fas fa-check"></i>',
         'uncheck' => '<i class="fas fa-times"></i>',
     ],
     'exclude' => [
@@ -34,11 +34,11 @@ return [
             ],
         ],
         'packages' => [
-            'enabled' => true,
+            'enabled'   => true,
             'blacklist' => [
                 'php',
                 'roave/security-advisories',
-            ]
-        ]
-    ]
+            ],
+        ],
+    ],
 ];

@@ -24,14 +24,14 @@ class ReComposerServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadViewsFrom(
-            __DIR__ . '/../resources/views',
-            self::$namespaceSuffix . '/' . self::$alias
+            __DIR__.'/../resources/views',
+            self::$namespaceSuffix.'/'.self::$alias
         );
 
         if ($this->app->runningInConsole()) {
             $this->publishes(
                 [
-                    __DIR__ . '/../config/recomposer.php' => config_path(
+                    __DIR__.'/../config/recomposer.php' => config_path(
                         'recomposer.php'
                     ),
                 ],
@@ -43,7 +43,7 @@ class ReComposerServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(
-            __DIR__ . '/../config/recomposer.php',
+            __DIR__.'/../config/recomposer.php',
             'recomposer'
         );
     }

@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace SolumDeSignum\ReComposer\Controllers;
 
+use function config;
 use Illuminate\View\View;
 use SolumDeSignum\ReComposer\ReComposer;
-
-use function config;
 
 class ReComposerController
 {
@@ -26,18 +25,17 @@ class ReComposerController
      */
     public function index(): View
     {
-
         return view(
             config('recomposer.view', 'solumdesignum/recomposer::index'),
             [
-                'packages' => $this->recomposer->packages,
-                'laravelEnv' => $this->recomposer->laravelEnvironment(),
-                'serverEnv' => $this->recomposer->serverEnvironment(),
-                'serverExtras' => $this->recomposer->serverExtras(),
+                'packages'      => $this->recomposer->packages,
+                'laravelEnv'    => $this->recomposer->laravelEnvironment(),
+                'serverEnv'     => $this->recomposer->serverEnvironment(),
+                'serverExtras'  => $this->recomposer->serverExtras(),
                 'laravelExtras' => $this->recomposer->laravelExtras(),
-                'extraStats' => $this->recomposer->extraStats(),
-                'iconCheck' => config('recomposer.icon.check'),
-                'iconUncheck' => config('recomposer.icon.uncheck'),
+                'extraStats'    => $this->recomposer->extraStats(),
+                'iconCheck'     => config('recomposer.icon.check'),
+                'iconUncheck'   => config('recomposer.icon.uncheck'),
             ]
         );
     }
