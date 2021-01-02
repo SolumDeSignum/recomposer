@@ -1,5 +1,5 @@
-[![StyleCI](https://github.styleci.io/repos/145921620/shield?branch=master)](https://github.styleci.io/repos/145921620)
-[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g//recomposer/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g//recomposer/?branch=master)
+[![StyleCI](https://github.styleci.io/repos/326276520/shield?branch=master)](https://github.styleci.io/repos/145921620)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g//recomposer/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/SolumDeSignum/recomposer/?branch=master)
 [![Total Downloads](https://poser.pugx.org/solumdesignum/recomposer/downloads)](https://packagist.org/packages/solumdesignum/recomposer)
 [![Latest Stable Version](https://poser.pugx.org/solumdesignum/recomposer/v/stable)](https://packagist.org/packages/solumdesignum/recomposer)
 [![Latest Unstable Version](https://poser.pugx.org/solumdesignum/recomposer/v/unstable)](https://packagist.org/packages/solumdesignum/recomposer)
