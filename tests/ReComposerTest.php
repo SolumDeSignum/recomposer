@@ -7,10 +7,9 @@ namespace Tests;
 namespace SolumDeSignum\ReComposer\Tests;
 
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use SolumDeSignum\ReComposer\ReComposer;
-
-use function dirname;
 
 class ReComposerTest extends BaseTestCase
 {
@@ -49,9 +48,9 @@ class ReComposerTest extends BaseTestCase
     /**
      * Creates the application.
      *
-     * @return \Illuminate\Foundation\Application
+     * @return Application
      */
-    public function createApplication(): \Illuminate\Foundation\Application
+    public function createApplication(): Application
     {
         $app = include(__DIR__ . '/../../../../bootstrap/app.php');
         $app->make(Kernel::class)->bootstrap();
