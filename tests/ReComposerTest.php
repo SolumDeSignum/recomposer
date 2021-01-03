@@ -11,6 +11,8 @@ use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use SolumDeSignum\ReComposer\ReComposer;
 
 use function chdir;
+use function dd;
+use function getcwd;
 use function realpath;
 
 class ReComposerTest extends BaseTestCase
@@ -54,7 +56,7 @@ class ReComposerTest extends BaseTestCase
      */
     public function createApplication(): \Illuminate\Foundation\Application
     {
-        chdir(realpath('bootstrap'));
+        chdir(getcwd() . '/bootstrap');
         $app = include 'app.php';
         $app->make(Kernel::class)->bootstrap();
 
