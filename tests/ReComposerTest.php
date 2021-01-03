@@ -54,9 +54,7 @@ class ReComposerTest extends BaseTestCase
      */
     public function createApplication(): \Illuminate\Foundation\Application
     {
-        $bootstrap = realpath( 'bootstrap');
-        $path = $bootstrap . '/app.php';
-        $app = require ($path);
+        $app = require 'bootstrap/app.php';
         $app->make(Kernel::class)->bootstrap();
 
         return $app;
