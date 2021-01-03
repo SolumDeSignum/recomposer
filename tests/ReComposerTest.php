@@ -10,10 +10,7 @@ use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use SolumDeSignum\ReComposer\ReComposer;
 
-use function chdir;
-use function dd;
-use function getcwd;
-use function realpath;
+use function dirname;
 
 class ReComposerTest extends BaseTestCase
 {
@@ -56,7 +53,7 @@ class ReComposerTest extends BaseTestCase
      */
     public function createApplication(): \Illuminate\Foundation\Application
     {
-        $app = include getcwd() . '/../../../bootstrap/app.php';
+        $app = include(__DIR__ . '/../../../../bootstrap/app.php');
         $app->make(Kernel::class)->bootstrap();
 
         return $app;
