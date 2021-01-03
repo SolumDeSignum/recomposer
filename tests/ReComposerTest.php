@@ -10,6 +10,7 @@ use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use SolumDeSignum\ReComposer\ReComposer;
 
+use function dd;
 use function realpath;
 
 class ReComposerTest extends BaseTestCase
@@ -53,8 +54,9 @@ class ReComposerTest extends BaseTestCase
      */
     public function createApplication(): \Illuminate\Foundation\Application
     {
-        $app = require realpath($_SERVER['PWD'] . '/bootstrap/app.php');
-
+        $bootstrap = realpath( 'bootstrap');
+        $path = $bootstrap . '/app.php';
+        $app = require ($path);
         $app->make(Kernel::class)->bootstrap();
 
         return $app;
