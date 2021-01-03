@@ -44,7 +44,6 @@ class ReComposerTest extends BaseTestCase
         }
     }
 
-
     /**
      * Creates the application.
      *
@@ -52,7 +51,7 @@ class ReComposerTest extends BaseTestCase
      */
     public function createApplication(): Application
     {
-        $app = include(__DIR__ . '/../../../../bootstrap/app.php');
+        $app = include __DIR__.'/../../../../bootstrap/app.php';
         $app->make(Kernel::class)->bootstrap();
 
         return $app;
