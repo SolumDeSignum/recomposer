@@ -56,8 +56,7 @@ class ReComposerTest extends BaseTestCase
      */
     public function createApplication(): \Illuminate\Foundation\Application
     {
-        chdir(getcwd() . '/bootstrap');
-        $app = include 'app.php';
+        $app = include getcwd() . '/../../../bootstrap/app.php';
         $app->make(Kernel::class)->bootstrap();
 
         return $app;
