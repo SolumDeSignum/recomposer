@@ -6,25 +6,18 @@ namespace SolumDeSignum\ReComposer;
 
 use App;
 use function array_first;
-use function array_merge;
 use function base_path;
 use ByteUnits\Binary;
 use function collect;
 use function config;
-use function exec;
-use function explode;
-use function get_loaded_extensions;
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Str;
-use function implode;
-use function in_array;
 use const JSON_THROW_ON_ERROR;
 use JsonException;
 use function now;
-use function strtolower;
 
 class ReComposer
 {
@@ -255,10 +248,10 @@ class ReComposer
      */
     private function excludeBlacklistPackages(): array
     {
-        $extensions = collect(get_loaded_extensions())
+        $extensions = collect(\get_loaded_extensions())
             ->map(
                 function (string $ext) {
-                    return 'ext-'.strtolower($ext);
+                    return 'ext-'.\mb_strtolower($ext);
                 }
             );
 
@@ -285,7 +278,7 @@ class ReComposer
     {
         $responsePackages = [];
         foreach ($this->composer[$requireType] as $packageName => $version) {
-            if (!in_array($packageName, $this->excludeBlacklistPackages(), true)) {
+            if (!\in_array($packageName, $this->excludeBlacklistPackages(), true)) {
                 $packageComposerJson = base_path(
                     "/vendor/{$packageName}/composer.json"
                 );
@@ -327,7 +320,7 @@ class ReComposer
         $responseRequirePackages = $this->collectPackages('require');
         $responseRequireDevPackages = $this->collectPackages('require-dev');
 
-        return array_merge($responseRequirePackages, $responseRequireDevPackages);
+        return \array_merge($responseRequirePackages, $responseRequireDevPackages);
     }
 
     /**
@@ -388,12 +381,12 @@ class ReComposer
     private function directorySize(): int
     {
         $basePath = config('recomposer.basePath');
-        $excludeDirectories = implode(
+        $excludeDirectories = \implode(
             ' ',
             config('recomposer.exclude.folder.blacklist')
         );
-        $execResponse = exec("du $basePath".' '.$excludeDirectories);
-        $directorySize = explode("\t", $execResponse);
+        $execResponse = \exec("du $basePath".' '.$excludeDirectories);
+        $directorySize = \explode("\t", $execResponse);
 
         /** @scrutinizer ignore-call */
         return (int) array_first($directorySize);
