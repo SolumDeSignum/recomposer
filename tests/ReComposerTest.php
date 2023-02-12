@@ -15,12 +15,6 @@ class ReComposerTest extends BaseTestCase
 {
     private ReComposer $recomposer;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->recomposer = new ReComposer();
-    }
-
     /**
      * Filter out laravel package
      * Verify is laravel installed
@@ -51,9 +45,15 @@ class ReComposerTest extends BaseTestCase
      */
     public function createApplication(): Application
     {
-        $app = include __DIR__.'/../../../../bootstrap/app.php';
+        $app = include __DIR__ . '/../../../../bootstrap/app.php';
         $app->make(Kernel::class)->bootstrap();
 
         return $app;
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->recomposer = new ReComposer();
     }
 }
