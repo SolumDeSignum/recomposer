@@ -20,19 +20,17 @@
     ],
     "homepage": "https://github.com/solumdesignum/recomposer",
     "require": {
-        "php": "^8.0|^8.1|^8.2",
-        "illuminate/support": "~9|~10",
-        "illuminate/view": "~9|^10",
+        "php": "^8.1|^8.2|^8.3|^8.4",
+        "illuminate/support": "^5|^6|^7|^8|^9|^10|^11|^12",
+        "illuminate/view": "^5|^6|^7|^8|^9|^10|^11|^12",
         "gabrielelana/byte-units": "^0.5"
     },
     "require-dev": {
         "roave/security-advisories": "dev-master",
-        "ext-json": "*",
-        "gabrielelana/byte-units": "^0.5",
-        "phpunit/phpunit": "~8|~9",
+        "phpunit/phpunit": "^8|^9|^10|^11",
         "mockery/mockery": "^1.4",
-        "orchestra/testbench": "~3|~4|~5|~6",
-        "sempro/phpunit-pretty-print": "^1.0"
+        "orchestra/testbench": "^5|^6|^7|^8|^9",
+        "sempro/phpunit-pretty-print": "^1.4"
     },
     "autoload": {
         "psr-4": {
@@ -51,16 +49,18 @@
             ],
             "aliases": {
                 "ReComposer": "SolumDeSignum\\ReComposer\\Facades\\ReComposerFacade"
-            },
-            "branch-alias": {
-                "dev-master": "1.x-master",
-                "dev-dev": "1.x-dev"
             }
         }
     },
     "config": {
-        "sort-packages": true
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "optimize-autoloader": true
     },
     "minimum-stability": "dev",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "scripts": {
+        "test": "vendor/bin/phpunit",
+        "test-coverage": "phpunit --coverage-html coverage"
+    }
 }
