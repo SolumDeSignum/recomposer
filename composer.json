@@ -39,7 +39,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "SolumDeSignum\\ReComposer\\Tests\\": "tests"
+            "SolumDeSignum\\ReComposer\\Tests\\": "tests/"
         }
     },
     "extra": {
