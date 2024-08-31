@@ -49,10 +49,6 @@
             ],
             "aliases": {
                 "ReComposer": "SolumDeSignum\\ReComposer\\Facades\\ReComposerFacade"
-            },
-            "branch-alias": {
-                "dev-master": "1.x-master",
-                "dev-dev": "1.x-dev"
             }
         }
     },
