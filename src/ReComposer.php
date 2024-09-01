@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace SolumDeSignum\ReComposer;
 
-use App;
-use ByteUnits\Binary;
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
-use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Str;
 use JsonException;
@@ -19,11 +18,9 @@ use function array_merge;
 use function base_path;
 use function collect;
 use function config;
+use function escapeshellarg;
 use function exec;
 use function explode;
-use function extension_loaded;
-use function file_get_contents;
-use function get_loaded_extensions;
 use function implode;
 use function in_array;
 use function is_writable;
@@ -37,15 +34,10 @@ use const JSON_THROW_ON_ERROR;
 class ReComposer
 {
     public string $packageName;
-
     public array $laravelExtras = [];
-
     public array $serverExtras = [];
-
     public array $extraStats = [];
-
     public array $composer = [];
-
     public array $packages = [];
 
     /**
@@ -62,26 +54,223 @@ class ReComposer
     }
 
     /**
-     *  Get the Composer file contents as an array.
+     * Get the Composer file contents as an array.
      *
+     * @param null $path
      * @return array
+     * @throws FileNotFoundException
      * @throws JsonException
-     *
      */
-    private function composerJson(): array
+    public function composerJson($path = null): array
     {
-        $composerJson = file_get_contents(base_path('composer.json'));
+        // Ensure the correct base path during tests
+        $basePath = defined('LARAVEL_BASE_PATH')
+            ? LARAVEL_BASE_PATH
+            : base_path();
 
-        return json_decode((string)$composerJson, true, 512, JSON_THROW_ON_ERROR);
+        $filePath = $path !== null
+            ? $path
+            : $basePath . '/composer.json';
+
+        if (!file_exists($filePath)) {
+            throw new FileNotFoundException("File not found: {$filePath}");
+        }
+
+        $composerJson = file_get_contents($filePath);
+
+        if ($composerJson === false) {
+            throw new \RuntimeException("Failed to read file: {$filePath}");
+        }
+
+        return json_decode($composerJson, true, 512, JSON_THROW_ON_ERROR);
     }
 
     /**
+     * Get the ReComposer system report as a PHP array.
+     *
      * @return array
      * @throws JsonException
-     *
      * @throws FileNotFoundException
      */
-    private function packagesWithDependencies(): array
+    public function report(): array
+    {
+        $reportResponse = [
+            'Server Environment' => $this->serverEnvironment(),
+            'Laravel Environment' => $this->laravelEnvironment(),
+            'Installed Packages' => $this->installedPackages(),
+        ];
+
+        if (!empty($this->extraStats)) {
+            $reportResponse['Extra Stats'] = $this->extraStats();
+        }
+
+        return $reportResponse;
+    }
+
+    /**
+     * Get PHP/Server environment details.
+     *
+     * @return array
+     */
+    public function serverEnvironment(): array
+    {
+        return array_merge(
+            [
+                'version' => PHP_VERSION,
+                'server_software' => $_SERVER['SERVER_SOFTWARE'] ?? 'unknown',
+                'server_os' => php_uname(),
+                'database_connection_name' => config('database.default'),
+                'ssl_installed' => $this->isSecure(),
+                'cache_driver' => config('cache.default'),
+                'session_driver' => config('session.driver'),
+                'openssl' => extension_loaded('openssl'),
+                'pdo' => extension_loaded('pdo'),
+                'mbstring' => extension_loaded('mbstring'),
+                'tokenizer' => extension_loaded('tokenizer'),
+                'xml' => extension_loaded('xml'),
+            ],
+            $this->serverExtras
+        );
+    }
+
+    /**
+     * Get additional server info added by the app or any other package dev.
+     *
+     * @return array
+     */
+    public function serverExtras(): array
+    {
+        return $this->serverExtras;
+    }
+
+    /**
+     * Get Laravel environment details.
+     *
+     * @return array
+     */
+    public function laravelEnvironment(): array
+    {
+        return array_merge(
+            [
+                'version' => App::version(),
+                'timezone' => config('app.timezone'),
+                'debug_mode' => config('app.debug') ? 'enabled' : 'disabled',
+                'storage_dir_writable' => is_writable(base_path('storage')),
+                'cache_dir_writable' => is_writable(base_path('bootstrap/cache')),
+                'recomposer_version' => $this->packageVersion(),
+                'app_size' => Str::replaceFirst(
+                    config('recomposer.binary.search', 'MiB'),
+                    config('recomposer.binary.replace', 'mb'),
+                    (string)$this->appSize()
+                ),
+            ],
+            $this->laravelExtras
+        );
+    }
+
+    /**
+     * Get application size in a formatted string.
+     *
+     * @return string|null
+     */
+    public function appSize(): ?string
+    {
+        return config('recomposer.cache.feature')
+            ? $this->cacheRemember()
+            : $this->binaryFormat();
+    }
+
+    /**
+     * Get application size from cache or calculate if not cached.
+     *
+     * @return string|null
+     */
+    public function cacheRemember(): ?string
+    {
+        return Cache::remember(
+            'recomposer.folderSize',
+            now()->addHours(config('recomposer.cache.hours', 1)),
+            fn() => $this->binaryFormat()
+        );
+    }
+
+    /**
+     * Get formatted size of the application directory.
+     *
+     * @return string
+     */
+    public function binaryFormat(): string
+    {
+        return round($this->directorySize() / (1024 * 1024), 2) . 'MB';
+    }
+
+    /**
+     * Get additional Laravel info added by the app or any other package dev.
+     *
+     * @return array
+     */
+    public function laravelExtras(): array
+    {
+        return $this->laravelExtras;
+    }
+
+    /**
+     * Get the extra stats added by the app or any other package dev.
+     *
+     * @return array
+     */
+    public function extraStats(): array
+    {
+        return $this->extraStats;
+    }
+
+    /**
+     * Add extra stats.
+     *
+     * @param array $extraStats
+     */
+    public function addExtraStats(array $extraStats): void
+    {
+        $this->extraStats = array_merge($this->extraStats, $extraStats);
+    }
+
+    /**
+     * Add Laravel specific stats.
+     *
+     * @param array $laravelStats
+     */
+    public function addLaravelStats(array $laravelStats): void
+    {
+        $this->laravelExtras = array_merge($this->laravelExtras, $laravelStats);
+    }
+
+    /**
+     * Add server specific stats.
+     *
+     * @param array $serverStats
+     */
+    public function addServerStats(array $serverStats): void
+    {
+        $this->serverExtras = array_merge($this->serverExtras, $serverStats);
+    }
+
+    /**
+     * Check if the request is secure (HTTPS).
+     *
+     * @return bool
+     */
+    public function isSecure(): bool
+    {
+        return Request::isSecure();
+    }
+
+    /**
+     * Get installed packages with their dependencies.
+     *
+     * @return array
+     * @throws JsonException
+     */
+    public function packagesWithDependencies(): array
     {
         $responseRequirePackages = $this->collectPackages('require');
         $responseRequireDevPackages = $this->collectPackages('require-dev');
@@ -90,27 +279,36 @@ class ReComposer
     }
 
     /**
-     * Get Installed packages & their Dependencies.
+     * Get installed packages based on type (require or require-dev).
      *
      * @param string $requireType
      *
      * @return array
      * @throws JsonException
-     *
-     * @throws FileNotFoundException
      */
-    private function collectPackages(string $requireType): array
+    public function collectPackages(string $requireType): array
     {
         $responsePackages = [];
+
+        if (!isset($this->composer[$requireType])) {
+            return $responsePackages; // Return an empty array if key is not set
+        }
+
         foreach ($this->composer[$requireType] as $packageName => $version) {
             if (!in_array($packageName, $this->excludeBlacklistPackages(), true)) {
-                $packageComposerJson = base_path(
-                    "/vendor/{$packageName}/composer.json"
-                );
+                $packageComposerJson = defined('VENDOR_BASE_PATH')
+                    ? VENDOR_BASE_PATH . "{$packageName}/composer.json"
+                    : base_path("/vendor/{$packageName}/composer.json");
 
-                $packageComposerJson = File::get($packageComposerJson);
+                if (!File::exists($packageComposerJson)) {
+                    Log::warning("Composer file not found for package: {$packageName}");
+                    continue;
+                }
+
+                $packageComposerJsonContent = File::get($packageComposerJson);
+
                 $responseDependencies = json_decode(
-                    $packageComposerJson,
+                    $packageComposerJsonContent,
                     true,
                     512,
                     JSON_THROW_ON_ERROR
@@ -135,16 +333,14 @@ class ReComposer
     }
 
     /**
+     * Get the list of excluded packages.
+     *
      * @return array
      */
-    private function excludeBlacklistPackages(): array
+    public function excludeBlacklistPackages(): array
     {
         $extensions = collect(get_loaded_extensions())
-            ->map(
-                function (string $ext) {
-                    return 'ext-' . strtolower($ext);
-                }
-            );
+            ->map(fn(string $ext) => 'ext-' . strtolower($ext));
 
         if (config('recomposer.exclude.packages.enabled')) {
             foreach (config('recomposer.exclude.packages.blacklist') as $package) {
@@ -156,112 +352,34 @@ class ReComposer
     }
 
     /**
+     * Get the dependencies from the package's composer.json.
+     *
      * @param string $key
      * @param array $responseDependencies
      *
      * @return mixed
      */
-    private function dependencies(string $key, array $responseDependencies)
+    public function dependencies(string $key, array $responseDependencies): mixed
     {
-        return array_key_exists(
-            $key,
-            $responseDependencies
-        ) ?
-            $responseDependencies[$key] :
-            'No dependencies';
+        return array_key_exists($key, $responseDependencies)
+            ? $responseDependencies[$key]
+            : 'No dependencies';
     }
 
     /**
-     * Get the ReComposer system report as a PHP array.
+     * Get installed packages and their version numbers.
      *
      * @return array
      * @throws JsonException
-     *
-     * @throws FileNotFoundException
      */
-    final public function report(): array
+    public function installedPackages(): array
     {
-        $reportResponse = [];
-        $reportResponse['Server Environment'] = $this->serverEnvironment();
-        $reportResponse['Laravel Environment'] = $this->laravelEnvironment();
-        $reportResponse['Installed Packages'] = $this->installedPackages();
-
-        if (!empty($this->extraStats())) {
-            $reportResponse['Extra Stats'] = $this->extraStats();
+        $packagesWithDependencies = [];
+        foreach ($this->packagesWithDependencies() as $packageWithDependencies) {
+            $packagesWithDependencies[$packageWithDependencies['name']] = $packageWithDependencies['version'];
         }
 
-        return $reportResponse;
-    }
-
-    /**
-     * Get PHP/Server environment details.
-     *
-     * @return array
-     */
-    public function serverEnvironment(): array
-    {
-        return array_merge(
-            [
-                'version' => PHP_VERSION,
-                'server_software' => $_SERVER['SERVER_SOFTWARE'],
-                'server_os' => php_uname(),
-                'database_connection_name' => config('database.default'),
-                'ssl_installed' => $this->isSecure(),
-                'cache_driver' => config('cache.default'),
-                'session_driver' => config('session.driver'),
-                'openssl' => extension_loaded('openssl'),
-                'pdo' => extension_loaded('pdo'),
-                'mbstring' => extension_loaded('mbstring'),
-                'tokenizer' => extension_loaded('tokenizer'),
-                'xml' => extension_loaded('xml'),
-            ],
-            $this->serverExtras()
-        );
-    }
-
-    /**
-     * Check if SSL is installed or not.
-     *
-     * @return bool
-     */
-    private function isSecure(): bool
-    {
-        return Request::isSecure();
-    }
-
-    /**
-     * Get additional server info added by the app or any other package dev.
-     *
-     * @return array
-     */
-    final public function serverExtras(): array
-    {
-        return $this->serverExtras;
-    }
-
-    /**
-     * Get Laravel environment details.
-     *
-     * @return array
-     */
-    final public function laravelEnvironment(): array
-    {
-        return array_merge(
-            [
-                'version' => App::version(),
-                'timezone' => config('app.timezone'),
-                'debug_mode' => config('app.debug'),
-                'storage_dir_writable' => is_writable(base_path('storage')),
-                'cache_dir_writable' => is_writable(base_path('bootstrap/cache')),
-                'decomposer_version' => $this->packageVersion(),
-                'app_size' => Str::replaceFirst(
-                    config('recomposer.binary.search', 'MiB'),
-                    config('recomposer.binary.replace', 'mb'),
-                    (string)$this->appSize()
-                ),
-            ],
-            $this->laravelExtras()
-        );
+        return $packagesWithDependencies;
     }
 
     /**
@@ -269,7 +387,7 @@ class ReComposer
      *
      * @return string
      */
-    private function packageVersion(): string
+    public function packageVersion(): string
     {
         $version = $this->composer['require-dev'][$this->packageName] ??
             $this->composer['require'][$this->packageName] ??
@@ -288,122 +406,42 @@ class ReComposer
         return $version;
     }
 
-    /**
-     * @return string|null
-     */
-    final public function appSize(): ?string
+    public function directorySize(): int
     {
-        return config('recomposer.cache.feature') ?
-            $this->cacheRemember() :
-            $this->binaryFormat();
-    }
+        $basePath = escapeshellarg(config('recomposer.basePath', base_path()));
 
-    /**
-     * @return string|null
-     */
-    final public function cacheRemember(): ?string
-    {
-        return Cache::remember(
-            'recomposer.folderSize',
-            now()->addHours(config('recomposer.cache.hours', 1)),
-            function () {
-                return $this->binaryFormat();
-            }
-        );
-    }
-
-    /**
-     * @return string
-     */
-    final public function binaryFormat(): string
-    {
-        $binaryFormat = config('recomposer.binary.format');
-
-        return Binary::$binaryFormat($this->directorySize())->format();
-    }
-
-    /**
-     * @return int
-     */
-    private function directorySize(): int
-    {
-        $basePath = config('recomposer.basePath');
-        $excludeDirectories = implode(
-            ' ',
-            config('recomposer.exclude.folder.blacklist')
-        );
-        $execResponse = exec("du $basePath" . ' ' . $excludeDirectories);
-        $directorySize = explode("\t", $execResponse);
-
-        /** @scrutinizer ignore-call */
-        return (int)Arr::first($directorySize);
-    }
-
-    /**
-     * Get additional laravel info added by the app or any other package dev.
-     *
-     * @return array
-     */
-    final public function laravelExtras(): array
-    {
-        return $this->laravelExtras;
-    }
-
-    /**
-     * Get Installed packages & their version numbers as an associative array.
-     *
-     * @return array
-     * @throws FileNotFoundException
-     *
-     * @throws JsonException
-     */
-    private function installedPackages(): array
-    {
-        $packagesWithDependencies = [];
-        foreach ($this->packagesWithDependencies() as $packageWithDependencies) {
-            $packages[$packageWithDependencies['name']] = $packageWithDependencies['version'];
+        if (empty($basePath) || $basePath === "''") {
+            return 0;
         }
 
-        return $packagesWithDependencies;
-    }
+        $excludeDirectories = implode(
+            ' ',
+            array_map('escapeshellarg', config('recomposer.exclude.folder.blacklist', []))
+        );
 
-    /**
-     * Get the extra stats added by the app or any other package dev.
-     *
-     * @return array
-     */
-    final public function extraStats(): array
-    {
-        return $this->extraStats;
-    }
+        try {
+            // Execute the shell command to get the directory size
+            $command = "du -sb $basePath $excludeDirectories";
+            $responseExec = exec($command, $output, $responseCode);
 
-    /**
-     * Add Extra stats by app or any other package dev.
-     *
-     * @param array $extraStats
-     */
-    final public function addExtraStats(array $extraStats): void
-    {
-        $this->extraStats = array_merge($this->extraStats, $extraStats);
-    }
+            if ($responseCode !== 0) {
+                throw new \RuntimeException('Failed to execute directory size command.');
+            }
 
-    /**
-     * Add Laravel specific stats by app or any other package dev.
-     *
-     * @param array $laravelStats
-     */
-    final public function addLaravelStats(array $laravelStats): void
-    {
-        $this->laravelExtras = array_merge($this->laravelExtras, $laravelStats);
-    }
+            $size = explode("\t", trim($responseExec))[0] ?? '0';
+            return is_numeric($size)
+                ? (int)$size
+                : 0;
+        } catch (\Throwable $e) {
+            Log::error('Error calculating directory size', [
+                'exception' => $e,
+                'command' => $command,
+                'output' => $output,
+                'basePath' => $basePath,
+                'excludeDirectories' => $excludeDirectories,
+            ]);
 
-    /**
-     * Add Server specific stats by app or any other package dev.
-     *
-     * @param array $serverStats
-     */
-    final public function addServerStats(array $serverStats): void
-    {
-        $this->serverExtras = array_merge($this->serverExtras, $serverStats);
+            return 0;
+        }
     }
 }

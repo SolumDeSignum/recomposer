@@ -30,7 +30,7 @@
 - Debug Mode: {!! $laravelEnv['debug_mode'] ? '&#10004;' : '&#10008;' !!}
 - Storage Dir Writable: {!! $laravelEnv['storage_dir_writable'] ? '&#10004;' : '&#10008;' !!}
 - Cache Dir Writable: {!! $laravelEnv['cache_dir_writable'] ? '&#10004;' : '&#10008;' !!}
-- Decomposer Version: {{ $laravelEnv['decomposer_version'] }}
+- Recomposer Version: {{ $laravelEnv['recomposer_version'] }}
 - App Size: {{ $laravelEnv['app_size'] }}
 @foreach($laravelExtras as $key => $value)
 - {{ $key }} : {{ is_bool($value) ? ($value ? '&#10004;' : '&#10008;') : $value }}

@@ -16,8 +16,8 @@
         <li class="list-group-item">
             Cache Dir Writable: {!! $laravelEnv['cache_dir_writable'] ? $iconCheck : $iconUncheck !!}
         </li>
-        <li class="list-group-item">Decomposer
-            Version: {{ $laravelEnv['decomposer_version'] }}</li>
+        <li class="list-group-item">Recomposer
+            Version: {{ $laravelEnv['recomposer_version'] }}</li>
         <li class="list-group-item">
             App Size: {{ $laravelEnv['app_size'] }}</li>
         @foreach($laravelExtras as $key => $value)
