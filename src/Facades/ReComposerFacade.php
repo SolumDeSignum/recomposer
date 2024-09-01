@@ -13,7 +13,7 @@ class ReComposerFacade
      *
      * @return string
      */
-    final protected static function getFacadeAccessor(): string
+    protected static function getFacadeAccessor(): string
     {
         return ReComposer::class;
     }
