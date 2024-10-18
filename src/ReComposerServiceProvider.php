@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace SolumDeSignum\ReComposer;
 
-use Illuminate\Contracts\Support\DeferrableProvider;
 use Illuminate\Support\ServiceProvider;
 
-class ReComposerServiceProvider extends ServiceProvider implements DeferrableProvider
+class ReComposerServiceProvider extends ServiceProvider
 {
     /**
      * Boot up the package. Load the views from the correct directory.
