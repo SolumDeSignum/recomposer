@@ -50,7 +50,7 @@ class ReComposer
     {
         $this->composer = $this->composerJson();
         $this->packages = $this->packagesWithDependencies();
-        $this->packageName = ReComposerServiceProvider::$namespaceSuffix . '/' . ReComposerServiceProvider::$alias;
+        $this->packageName = 'solumdesignum/recomposer';
     }
 
     /**
