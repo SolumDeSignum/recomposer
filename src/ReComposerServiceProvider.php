@@ -46,13 +46,10 @@ class ReComposerServiceProvider extends ServiceProvider implements DeferrablePro
     protected function bootForConsole(): void
     {
         // Publishing the configuration file.
-        $this->publishes(
-            [
-                __DIR__ . '/../config/recomposer.php' => config_path(
-                    'recomposer.php'
-                ),
-            ],
-            'config'
+        $this->publishes([
+            __DIR__ . '/../config/recomposer.php' => config_path('recomposer.php'),
+        ],
+            'recomposer.config'
         );
     }
 }
